@@ -23,7 +23,7 @@ This guide will help you set up and run your first Vernachain node, create a wal
    ```bash
    git clone https://github.com/BronzonTech-Cloud/vernachain.git
    cd vernachain
-   ```
+```
 
 3. Install Dependencies:
    ```bash
@@ -32,7 +32,7 @@ This guide will help you set up and run your first Vernachain node, create a wal
 
    # Install frontend dependencies
    cd src/frontend && npm install && cd ../..
-   ```
+```
 
 ## Initial Setup
 
@@ -49,7 +49,7 @@ This guide will help you set up and run your first Vernachain node, create a wal
    ├── tests/            # Test files
    ├── requirements.txt  # Python dependencies
    └── start.sh/bat      # Startup scripts
-   ```
+```
 
 ## Running the Network
 
@@ -57,12 +57,12 @@ This guide will help you set up and run your first Vernachain node, create a wal
    ```bash
    ./start.sh --dev      # Unix systems
    start.bat --dev       # Windows
-   ```
+```
 
 2. Production Mode with Bootstrap Node:
    ```bash
    ./start.sh --bootstrap
-   ```
+```
 
 3. Custom Configuration:
    ```bash
@@ -77,7 +77,7 @@ This guide will help you set up and run your first Vernachain node, create a wal
 1. Create a New Wallet:
    ```bash
    python -m src.wallet.cli create -l "My Wallet"
-   ```
+```
 
 2. Check Wallet Balance:
    ```bash
@@ -87,7 +87,7 @@ This guide will help you set up and run your first Vernachain node, create a wal
 3. List Available Wallets:
    ```bash
    python -m src.wallet.cli list
-   ```
+```
 
 ## Basic Operations
 
@@ -99,7 +99,7 @@ This guide will help you set up and run your first Vernachain node, create a wal
 2. Send Transactions:
    ```bash
    python -m src.wallet.cli send --to ADDRESS --amount VALUE
-   ```
+```
 
 3. Stake Tokens (to become a validator):
    ```bash
@@ -109,7 +109,7 @@ This guide will help you set up and run your first Vernachain node, create a wal
 4. Deploy Smart Contract:
    ```bash
    python -m src.cli deploy-contract --file path/to/contract.py
-   ```
+```
 
 ## Next Steps
 
