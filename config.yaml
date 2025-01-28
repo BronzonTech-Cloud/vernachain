@@ -1,0 +1,82 @@
+# Vernachain CLI Configuration
+# Location: ~/.vernachain/config.yaml
+
+# Node Configuration
+node:
+  # Bootstrap Node Settings
+  bootstrap:
+    host: localhost
+    port: 5000
+    max_peers: 50
+    
+  # Regular Node Settings
+  regular:
+    host: localhost
+    port: 5001
+    validator_enabled: false
+    
+# Network Configuration
+network:
+  api_port: 8000
+  explorer_port: 8001
+  frontend_port: 3000
+  timeout: 30  # seconds
+  max_retries: 3
+
+# Wallet Configuration
+wallet:
+  default_fee: 0.001
+  auto_unlock_duration: 300  # seconds
+  keystore_path: ~/.vernachain/keystore
+  backup_path: ~/.vernachain/backup
+
+# Validator Configuration
+validator:
+  minimum_stake: 1000
+  commission_rate: 0.10
+  max_commission: 0.20
+  unbonding_time: 1209600  # 14 days in seconds
+
+# Smart Contract Configuration
+contract:
+  default_gas_limit: 1000000
+  max_gas_limit: 5000000
+  gas_price: 0.00001
+
+# Security Configuration
+security:
+  min_password_length: 8
+  max_failed_attempts: 5
+  lockout_duration: 300  # seconds
+  require_2fa: false
+
+# Logging Configuration
+logging:
+  level: info  # debug, info, warning, error
+  file_path: ~/.vernachain/logs
+  max_size: 100  # MB
+  backup_count: 5
+  console_output: true
+
+# Development Configuration
+development:
+  debug_mode: false
+  test_network: false
+  auto_mining: true
+  block_time: 15  # seconds
+
+# API Configuration
+api:
+  rate_limit: 100  # requests per minute
+  jwt_expiry: 3600  # seconds
+  cors_origins:
+    - http://localhost:3000
+    - http://127.0.0.1:3000
+
+# Storage Configuration
+storage:
+  db_path: ~/.vernachain/data
+  max_db_size: 10  # GB
+  prune_blocks_older_than: 5184000  # 60 days in seconds
+  backup_enabled: true
+  backup_interval: 86400  # 24 hours in seconds
