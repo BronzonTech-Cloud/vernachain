@@ -1,21 +1,16 @@
 <div align="center">
 
-<pre>
-<code style="color: #4A90E2">
-⬢ ⬡ ⬢ ⬡ ⬢ ⬡ ⬢ ⬡ ⬢ ⬡ ⬢ ⬡ ⬢ ⬡ ⬢ ⬡ ⬢
+```ascii
                     ██╗   ██╗███████╗██████╗ ███╗   ██╗ █████╗ 
                     ██║   ██║██╔════╝██╔══██╗████╗  ██║██╔══██╗
                     ██║   ██║█████╗  ██████╔╝██╔██╗ ██║███████║
                     ╚██╗ ██╔╝██╔══╝  ██╔══██╗██║╚██╗██║██╔══██║
                      ╚████╔╝ ███████╗██║  ██║██║ ╚████║██║  ██║
-                      ╚═══╝  ╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝</code>
-<code style="color: #66B2FF">                    ============================================</code>
-<code style="color: #99CCFF">                           Next-Gen Blockchain Platform</code>
-<code style="color: #4A90E2">                               ⬡ POWERED BY ⬡
-                             BRONZONTECH CLOUD</code>
-<code style="color: #4A90E2">⬢ ⬡ ⬢ ⬡ ⬢ ⬡ ⬢ ⬡ ⬢ ⬡ ⬢ ⬡ ⬢ ⬡ ⬢ ⬡ ⬢</code>
-</pre>
-
+                      ╚═══╝  ╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝
+                    ============================================
+                           Next-Gen Blockchain Platform
+                           ⬡ POWERED BY BRONZONTECH CLOUD ⬡
+```
 
 # 🔗 Vernachain
 
@@ -235,4 +230,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 Made with ❤️ by BronzonTech
 
-</div> 
+</div>
