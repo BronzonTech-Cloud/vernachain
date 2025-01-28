@@ -1,0 +1,28 @@
+title: Vernachain Documentation
+description: Documentation for the Vernachain SDK
+theme: just-the-docs
+
+url: https://bronzontech-cloud.github.io/vernachain
+
+aux_links:
+  "Vernachain on GitHub":
+    - "https://github.com/BronzonTech-Cloud/vernachain"
+
+# Enable search
+search_enabled: true
+
+# Enable dark mode
+color_scheme: dark
+
+# Enable copy code button
+enable_copy_code_button: true
+
+# Footer content
+footer_content: "Copyright &copy; 2024 BronzonTech Cloud. Distributed under the MIT license."
+
+# Exclude files from processing
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor 
