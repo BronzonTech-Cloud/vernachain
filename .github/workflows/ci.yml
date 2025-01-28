@@ -6,6 +6,14 @@ on:
   pull_request:
     branches: [ main ]
 
+# Add explicit permissions at workflow level
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+  actions: read
+  security-events: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -33,6 +41,9 @@ jobs:
         
     - name: Upload coverage reports
       uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        fail_ci_if_error: true
       
   lint:
     runs-on: ubuntu-latest
