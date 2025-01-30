@@ -135,21 +135,75 @@ VITE_API_KEY=your_api_key
 ## 📁 Project Structure
 ```
 vernachain/
-├── src/
-│   ├── api/            # API service
-│   │   ├── service.py  # FastAPI application
-│   │   └── models.py   # Data models
-│   ├── blockchain/     # Core blockchain
-│   │   ├── node.py     # Node implementation
-│   │   └── consensus/  # PoS consensus
-│   ├── explorer/       # Block explorer
-│   │   └── backend.py  # Explorer service
-│   └── frontend/       # Web interface
-│       ├── src/        # Frontend source
-│       └── public/     # Static assets
-├── docs/              # Documentation
-├── tests/             # Test suite
-└── start.py          # Startup script
+├── src/                      # Source code
+│   ├── blockchain/          # Core blockchain implementation
+│   │   ├── smart_contracts/ # Smart contract system
+│   │   │   ├── vm.py       # Virtual machine implementation
+│   │   │   ├── token.py    # Base token contract
+│   │   │   ├── erc721.py   # NFT contract implementation
+│   │   │   ├── erc1155.py  # Multi-token contract
+│   │   │   ├── token_vesting.py # Token vesting contract
+│   │   │   ├── token_swap.py    # Token swap contract
+│   │   │   ├── governance.py    # Governance contract
+│   │   │   ├── price_oracle.py  # Price oracle contract
+│   │   │   └── factory.py  # Contract factory
+│   │   ├── sharding.py     # Sharding implementation
+│   │   ├── consensus.py    # Consensus mechanism
+│   │   ├── transaction.py  # Transaction processing
+│   │   └── block.py        # Block structure
+│   ├── api/                # API implementation
+│   │   ├── blockchain/     # Blockchain API endpoints
+│   │   ├── explorer/       # Explorer API endpoints
+│   │   └── websocket/      # WebSocket handlers
+│   ├── auth/               # Authentication system
+│   │   ├── service.py      # Auth service implementation
+│   │   └── models.py       # Auth models
+│   ├── bridge/             # Cross-chain bridge
+│   │   ├── bridge_manager.py # Bridge management
+│   │   └── contracts/      # Bridge contracts
+│   ├── cli/                # Command-line interface
+│   │   ├── commands/       # CLI command implementations
+│   │   └── utils/          # CLI utilities
+│   ├── consensus/          # Consensus implementation
+│   │   ├── pos.py         # Proof of Stake
+│   │   └── validator.py    # Validator management
+│   ├── explorer/           # Blockchain explorer
+│   │   ├── backend.py      # Explorer backend
+│   │   └── api/           # Explorer API
+│   ├── frontend/           # Web interface
+│   │   ├── src/           # Frontend source
+│   │   └── public/        # Static assets
+│   ├── networking/         # P2P networking
+│   │   ├── node.py        # Node implementation
+│   │   └── protocol.py    # Network protocol
+│   ├── sdk/                # Development SDK
+│   │   ├── client.py      # SDK client
+│   │   └── types.py       # SDK types
+│   ├── tokens/             # Token management
+│   │   ├── manager.py     # Token manager
+│   │   └── standards.py   # Token standards
+│   ├── utils/              # Utility functions
+│   │   ├── crypto.py      # Cryptographic functions
+│   │   ├── validation.py  # Data validation
+│   │   └── serialization.py # Data serialization
+│   └── wallet/             # Wallet implementation
+│       ├── wallet.py      # Wallet core
+│       └── keystore.py    # Key management
+├── docs/                   # Documentation
+│   ├── api-reference.md    # API documentation
+│   ├── architecture.md     # System architecture
+│   ├── getting-started.md  # Getting started guide
+│   └── smart-contracts.md  # Smart contract guide
+├── tests/                  # Test suite
+│   ├── blockchain/         # Blockchain tests
+│   ├── smart_contracts/    # Contract tests
+│   └── integration/        # Integration tests
+├── scripts/               # Development scripts
+│   ├── setup.sh          # Setup script
+│   └── test.sh          # Test runner
+└── config/               # Configuration files
+    ├── default.yaml     # Default configuration
+    └── test.yaml       # Test configuration
 ```
 
 ## 🛠️ Development
