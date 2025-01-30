@@ -44,6 +44,7 @@ class Blockchain:
         self.pending_transactions: List[Dict] = []
         self.validator_manager = ValidatorManager()
         self.create_genesis_block()
+        self.validators: Dict[str, Validator] = {}  # Store active validators
 
     def create_genesis_blocks(self) -> None:
         """Create genesis blocks for master chain and all shards."""
@@ -70,7 +71,30 @@ class Blockchain:
 
     def register_validator(self, address: str, stake_amount: float) -> bool:
         """Register a new validator."""
-        return self.validator_manager.register_validator(address, stake_amount)
+        if not is_valid_stake_amount(stake_amount):
+            return False
+            
+        validator = Validator(
+            address=address,
+            stake=stake_amount,
+            is_active=True,
+            reputation_score=0,
+            blocks_produced=0
+        )
+        
+        self.validators[address] = validator
+        return True
+
+    def get_validator(self, address: str) -> Optional[Validator]:
+        """Get validator information."""
+        return self.validators.get(address)
+
+    def update_validator_status(self, address: str, is_active: bool) -> bool:
+        """Update validator status."""
+        if address in self.validators:
+            self.validators[address].is_active = is_active
+            return True
+        return False
 
     def add_transaction(self, transaction: Transaction) -> bool:
         """
@@ -716,4 +740,299 @@ class Blockchain:
                 'uptime': self.validator_manager._calculate_uptime(stats),
                 'is_jailed': address in self.validator_manager.jailed_validators
             }
-        return None 
+        return None
+
+    def is_valid_transaction(self, transaction: Dict) -> bool:
+        """
+        Validate a transaction.
+        
+        Args:
+            transaction: Transaction to validate
+            
+        Returns:
+            bool: True if transaction is valid
+        """
+        # Skip validation for reward transactions
+        if transaction.get('type') == 'reward':
+            return True
+            
+        # Basic validation
+        if not all(k in transaction for k in ['from', 'to', 'value', 'nonce']):
+            return False
+            
+        # Value must be positive
+        if transaction['value'] <= 0:
+            return False
+            
+        # Cannot send to self
+        if transaction['from'] == transaction['to']:
+            return False
+            
+        # Check sender's balance
+        sender_balance = self.get_balance(transaction['from'])
+        if sender_balance < transaction['value']:
+            return False
+            
+        # Verify signature if present
+        if 'signature' in transaction:
+            try:
+                message = serialize_transaction(transaction)
+                if not verify_signature(transaction['from'], message, transaction['signature']):
+                    return False
+            except Exception:
+                return False
+                
+        return True
+        
+    def is_valid_block(self, block: Dict) -> bool:
+        """
+        Validate a block.
+        
+        Args:
+            block: Block to validate
+            
+        Returns:
+            bool: True if block is valid
+        """
+        # Check required fields
+        required_fields = ['index', 'timestamp', 'transactions', 'previous_hash', 'validator']
+        if not all(field in block for field in required_fields):
+            return False
+            
+        # Check block index
+        if block['index'] != len(self.chain):
+            return False
+            
+        # Check previous hash
+        if block['previous_hash'] != self.get_latest_block()['hash']:
+            return False
+            
+        # Check validator
+        validator = self.validator_manager.get_validator(block['validator'])
+        if not validator or not validator.is_active:
+            return False
+            
+        # Verify block hash
+        calculated_hash = self._calculate_block_hash(block)
+        if block.get('hash') != calculated_hash:
+            return False
+            
+        # Verify merkle root if present
+        if 'merkle_root' in block:
+            calculated_root = generate_merkle_root([tx['hash'] for tx in block['transactions']])
+            if block['merkle_root'] != calculated_root:
+                return False
+                
+        # Verify all transactions
+        for transaction in block['transactions']:
+            if not self.is_valid_transaction(transaction):
+                return False
+                
+        return True
+        
+    def serialize_block(self, block: Dict) -> str:
+        """
+        Serialize a block for hashing or transmission.
+        
+        Args:
+            block: Block to serialize
+            
+        Returns:
+            str: Serialized block
+        """
+        # Create a copy without hash and signature
+        block_copy = block.copy()
+        block_copy.pop('hash', None)
+        block_copy.pop('signature', None)
+        
+        # Convert timestamp to ISO format for consistent serialization
+        if isinstance(block_copy['timestamp'], datetime):
+            block_copy['timestamp'] = block_copy['timestamp'].isoformat()
+            
+        # Sort transactions by hash for consistent ordering
+        block_copy['transactions'] = sorted(
+            block_copy['transactions'],
+            key=lambda x: x.get('hash', '')
+        )
+        
+        # Convert to JSON string with sorted keys
+        return json.dumps(block_copy, sort_keys=True)
+        
+    def serialize_transaction(self, transaction: Dict) -> str:
+        """
+        Serialize a transaction for hashing or transmission.
+        
+        Args:
+            transaction: Transaction to serialize
+            
+        Returns:
+            str: Serialized transaction
+        """
+        # Create a copy without signature and hash
+        tx_copy = transaction.copy()
+        tx_copy.pop('signature', None)
+        tx_copy.pop('hash', None)
+        
+        # Convert timestamp to ISO format if present
+        if 'timestamp' in tx_copy and isinstance(tx_copy['timestamp'], datetime):
+            tx_copy['timestamp'] = tx_copy['timestamp'].isoformat()
+            
+        # Convert to JSON string with sorted keys
+        return json.dumps(tx_copy, sort_keys=True)
+
+    def create_and_validate_block(self, validator_address: str, transactions: List[Dict]) -> Optional[Dict]:
+        """
+        Create a new block and validate it before adding to chain.
+        
+        Args:
+            validator_address: Address of the validator creating the block
+            transactions: List of transactions to include
+            
+        Returns:
+            Dict: The created and validated block, or None if invalid
+        """
+        # Create new block
+        latest_block = self.get_latest_block()
+        new_block = {
+            'index': latest_block['index'] + 1,
+            'timestamp': datetime.now(),
+            'transactions': transactions,
+            'previous_hash': latest_block['hash'],
+            'validator': validator_address,
+            'merkle_root': generate_merkle_root([tx['hash'] for tx in transactions])
+        }
+        
+        # Serialize and calculate hash
+        block_data = self.serialize_block(new_block)
+        new_block['hash'] = hash_data(block_data)
+        
+        # Validate the block
+        if not self.is_valid_block(new_block):
+            blockchain_logger.error(f"Block validation failed for block {new_block['index']}")
+            return None
+            
+        blockchain_logger.info(f"Created and validated block {new_block['index']}")
+        return new_block
+        
+    def add_validated_block(self, block: Dict, signature: bytes) -> bool:
+        """
+        Add a validated block to the chain.
+        
+        Args:
+            block: The block to add
+            signature: Block signature from validator
+            
+        Returns:
+            bool: True if block was added successfully
+        """
+        # Double check block validity with signature
+        if not self._is_valid_block(block, signature):
+            blockchain_logger.error(f"Block {block['index']} failed final validation")
+            return False
+            
+        # Update validator reputation
+        self.validator_manager.update_reputation(
+            block['validator'],
+            block['index'],
+            'block_proposed'
+        )
+        
+        # Calculate rewards
+        reward = self.validator_manager.calculate_rewards(
+            block['validator'],
+            block['index']
+        )
+        
+        # Add reward transaction if any
+        if reward > 0:
+            reward_tx = {
+                'from': None,  # System reward
+                'to': block['validator'],
+                'value': reward,
+                'timestamp': datetime.now(),
+                'type': 'reward'
+            }
+            block['transactions'].append(reward_tx)
+            
+            # Update merkle root with reward transaction
+            block['merkle_root'] = generate_merkle_root([tx['hash'] for tx in block['transactions']])
+            
+            # Re-serialize and update hash
+            block_data = self.serialize_block(block)
+            block['hash'] = hash_data(block_data)
+        
+        # Add block to chain
+        self.chain.append(block)
+        blockchain_logger.info(f"Added block {block['index']} to chain")
+        
+        # Clear processed transactions
+        self.pending_transactions = [
+            tx for tx in self.pending_transactions
+            if tx['hash'] not in [btx['hash'] for btx in block['transactions']]
+        ]
+        
+        return True
+
+class ShardChain:
+    def __init__(self, shard_id: int):
+        self.shard_id = shard_id
+        self.chain: List[Block] = []
+        self.validators: Dict[str, Validator] = {}  # Add validator tracking
+        self.pending_messages: List[CrossShardMessage] = []
+        self.processed_messages: Dict[str, CrossShardMessage] = {}
+
+    def process_cross_shard_transaction(self, message: CrossShardMessage, transaction: Dict, validator: Validator) -> bool:
+        """
+        Process a cross-shard transaction.
+        
+        Args:
+            message: Cross-shard message containing transaction details
+            transaction: The transaction to process
+            validator: The validator processing the transaction
+            
+        Returns:
+            bool: True if transaction processed successfully
+        """
+        # Validate the validator
+        if not validator.is_active or validator.address not in self.validators:
+            message.status = "failed"
+            return False
+
+        # Validate the transaction
+        if not is_valid_transaction(transaction):
+            validator.reputation_score -= 1  # Penalize for invalid transaction
+            message.status = "failed"
+            return False
+            
+        # Verify the transaction belongs to this shard
+        if message.to_shard != self.shard_id:
+            validator.reputation_score -= 1  # Penalize for wrong shard
+            message.status = "failed"
+            return False
+            
+        # Verify merkle proof
+        if not self._verify_merkle_proof(transaction, message.merkle_proof):
+            validator.reputation_score -= 1  # Penalize for invalid proof
+            message.status = "failed"
+            return False
+            
+        # Create a new block for the cross-shard transaction
+        new_block = Block(
+            index=len(self.chain),
+            transactions=[serialize_transaction(transaction)],
+            timestamp=time.time(),
+            previous_hash=self.chain[-1].hash if self.chain else "0" * 64,
+            validator=validator.address  # Use validator's address
+        )
+        
+        # Add block to chain
+        if not self.add_block(new_block):
+            validator.reputation_score -= 1  # Penalize for failed block addition
+            message.status = "failed"
+            return False
+            
+        # Reward successful processing
+        validator.blocks_produced += 1
+        validator.reputation_score += 1
+        message.status = "completed"
+        return True 

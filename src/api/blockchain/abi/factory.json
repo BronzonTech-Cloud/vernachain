@@ -1,0 +1,157 @@
+{
+    "contractName": "TokenFactory",
+    "abi": [
+        {
+            "inputs": [],
+            "stateMutability": "nonpayable",
+            "type": "constructor"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "string",
+                    "name": "name",
+                    "type": "string"
+                },
+                {
+                    "internalType": "string",
+                    "name": "symbol",
+                    "type": "string"
+                },
+                {
+                    "internalType": "uint256",
+                    "name": "initialSupply",
+                    "type": "uint256"
+                },
+                {
+                    "internalType": "uint8",
+                    "name": "decimals",
+                    "type": "uint8"
+                },
+                {
+                    "internalType": "bool",
+                    "name": "isMintable",
+                    "type": "bool"
+                },
+                {
+                    "internalType": "bool",
+                    "name": "isBurnable",
+                    "type": "bool"
+                },
+                {
+                    "internalType": "bool",
+                    "name": "isPausable",
+                    "type": "bool"
+                }
+            ],
+            "name": "createToken",
+            "outputs": [
+                {
+                    "internalType": "address",
+                    "name": "",
+                    "type": "address"
+                }
+            ],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "string",
+                    "name": "name",
+                    "type": "string"
+                },
+                {
+                    "internalType": "string",
+                    "name": "symbol",
+                    "type": "string"
+                },
+                {
+                    "internalType": "string",
+                    "name": "baseURI",
+                    "type": "string"
+                },
+                {
+                    "internalType": "bool",
+                    "name": "isBurnable",
+                    "type": "bool"
+                },
+                {
+                    "internalType": "bool",
+                    "name": "isPausable",
+                    "type": "bool"
+                }
+            ],
+            "name": "createNFTCollection",
+            "outputs": [
+                {
+                    "internalType": "address",
+                    "name": "",
+                    "type": "address"
+                }
+            ],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "string",
+                    "name": "name",
+                    "type": "string"
+                },
+                {
+                    "internalType": "string",
+                    "name": "uri",
+                    "type": "string"
+                },
+                {
+                    "internalType": "bool",
+                    "name": "isBurnable",
+                    "type": "bool"
+                },
+                {
+                    "internalType": "bool",
+                    "name": "isPausable",
+                    "type": "bool"
+                }
+            ],
+            "name": "createMultiToken",
+            "outputs": [
+                {
+                    "internalType": "address",
+                    "name": "",
+                    "type": "address"
+                }
+            ],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [],
+            "name": "getDeployedTokens",
+            "outputs": [
+                {
+                    "components": [
+                        {
+                            "internalType": "address",
+                            "name": "addr",
+                            "type": "address"
+                        },
+                        {
+                            "internalType": "string",
+                            "name": "tokenType",
+                            "type": "string"
+                        }
+                    ],
+                    "internalType": "struct TokenFactory.TokenInfo[]",
+                    "name": "",
+                    "type": "tuple[]"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        }
+    ]
+} 

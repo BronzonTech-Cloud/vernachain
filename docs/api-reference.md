@@ -23,6 +23,49 @@ Rate limits:
 - 100 requests per minute for regular endpoints
 - 30 requests per minute for heavy operations
 
+### Endpoints
+
+#### POST /api/v1/auth/register
+Register a new user.
+
+**Request Body:**
+```json
+{
+    "email": "user@example.com",
+    "password": "password",
+    "confirm_password": "password"
+}
+```
+
+**Response:**
+```json
+{
+    "success": true,
+    "message": "Registration successful"
+}
+```
+
+#### POST /api/v1/auth/login
+Login with credentials.
+
+**Request Body:**
+```json
+{
+    "email": "user@example.com",
+    "password": "password"
+}
+```
+
+**Response:**
+```json
+{
+    "success": true,
+    "data": {
+        "token": "jwt_token_here"
+    }
+}
+```
+
 ## Base URLs
 
 - Node API: `http://localhost:8000/api/v1`
@@ -69,55 +112,120 @@ Response:
 
 ## Blockchain API
 
-### Get Block
+### Transaction Operations
+
+#### Create Transaction
 ```http
-GET /blocks/{block_id}
+POST /api/v1/transactions
+```
+
+Request body:
+```json
+{
+    "from_address": "string",
+    "to_address": "string",
+    "amount": "number",
+    "nonce": "number",
+    "signature": "string"
+}
+```
+
+#### Get Transaction
+```http
+GET /api/v1/transactions/{transaction_hash}
 ```
 
 Response:
 ```json
 {
-  "index": 0,
-  "hash": "string",
-  "previous_hash": "string",
-  "timestamp": "timestamp",
-  "transactions": [],
-  "validator": "string",
-  "signature": "string"
+    "hash": "string",
+    "from_address": "string",
+    "to_address": "string",
+    "amount": "number",
+    "nonce": "number",
+    "signature": "string",
+    "status": "string",
+    "block_number": "number",
+    "timestamp": "number"
 }
 ```
 
-### Get Transaction
+### Block Operations
+
+#### Get Block
 ```http
-GET /transactions/{tx_hash}
+GET /api/v1/blocks/{block_number}
 ```
 
 Response:
 ```json
 {
-  "hash": "string",
-  "from": "string",
-  "to": "string",
-  "value": "number",
-  "timestamp": "timestamp",
-  "block_hash": "string",
-  "status": "string"
+    "index": "number",
+    "hash": "string",
+    "previous_hash": "string",
+    "timestamp": "number",
+    "transactions": "array",
+    "validator": "string",
+    "merkle_root": "string"
 }
 ```
 
-### Send Transaction
+### Shard Operations
+
+#### Get Shard Info
 ```http
-POST /transactions
+GET /api/v1/shards/{shard_id}
 ```
 
-Request:
+Response:
 ```json
 {
-  "from": "string",
-  "to": "string",
-  "value": "number",
-  "data": "string",
-  "signature": "string"
+    "shard_id": "number",
+    "validator_set": "array",
+    "state_root": "string",
+    "last_block_height": "number",
+    "pending_messages": "number",
+    "processed_messages": "number"
+}
+```
+
+### Cross-Shard Operations
+
+#### Create Cross-Shard Transaction
+```http
+POST /api/v1/cross-shard/transactions
+```
+
+Request body:
+```json
+{
+    "from_shard": "number",
+    "to_shard": "number",
+    "transaction": {
+        "from_address": "string",
+        "to_address": "string",
+        "amount": "number",
+        "nonce": "number",
+        "signature": "string"
+    }
+}
+```
+
+### Validator Operations
+
+#### Get Validator Info
+```http
+GET /api/v1/validators/{address}
+```
+
+Response:
+```json
+{
+    "address": "string",
+    "stake": "number",
+    "is_active": "boolean",
+    "reputation_score": "number",
+    "blocks_produced": "number"
 }
 ```
 
@@ -340,3 +448,132 @@ X-RateLimit-Limit: 100
 X-RateLimit-Remaining: 99
 X-RateLimit-Reset: 1635724800
 ```
+
+## Explorer API
+
+### Network Statistics
+
+#### GET /stats
+Get detailed network statistics.
+
+**Response:**
+```json
+{
+    "total_blocks": 1000,
+    "total_transactions": 5000,
+    "total_addresses": 200,
+    "total_validators": 10,
+    "total_shards": 4,
+    "average_block_time": 5.0,
+    "current_tps": 100,
+    "peak_tps": 150,
+    "total_staked": 1000000,
+    "current_difficulty": 12345,
+    "hash_rate": 1000000
+}
+```
+
+### Blocks
+
+#### GET /blocks
+Get paginated list of blocks.
+
+**Parameters:**
+- page (int): Page number
+- limit (int): Items per page
+- include_transactions (bool): Include full transaction details
+
+### Transactions
+
+#### GET /transactions
+Get paginated list of transactions.
+
+**Parameters:**
+- page (int): Page number
+- limit (int): Items per page
+- address (string): Filter by address
+- type (string): Filter by transaction type
+- status (string): Filter by status
+
+### Validators
+
+#### GET /validators
+Get list of validators with detailed information.
+
+**Response:**
+```json
+[
+    {
+        "address": "0x...",
+        "total_stake": 100000,
+        "self_stake": 50000,
+        "delegators": 10,
+        "blocks_validated": 100,
+        "uptime": 99.9,
+        "commission_rate": 0.05,
+        "rewards_earned": 1000,
+        "performance_score": 95.5,
+        "status": "active"
+    }
+]
+```
+
+## WebSocket API
+
+### Channels
+- stats: Network statistics updates
+- blocks: New block notifications
+- transactions: New transaction notifications
+- validators: Validator status updates
+
+### Connection
+```javascript
+ws://your-node:port/ws/{channel}
+```
+
+### Real-time Block Updates
+```websocket
+ws://api/v1/ws/blocks
+```
+
+Message format:
+```json
+{
+    "type": "new_block",
+    "data": {
+        "index": "number",
+        "hash": "string",
+        "previous_hash": "string",
+        "timestamp": "number",
+        "transactions": "array",
+        "validator": "string"
+    }
+}
+```
+
+### Real-time Transaction Updates
+```websocket
+ws://api/v1/ws/transactions
+```
+
+Message format:
+```json
+{
+    "type": "new_transaction",
+    "data": {
+        "hash": "string",
+        "from_address": "string",
+        "to_address": "string",
+        "amount": "number",
+        "status": "string"
+    }
+}
+```
+
+## Security
+
+All API endpoints are protected with:
+- Rate limiting
+- JWT authentication
+- CORS protection
+- Input validation

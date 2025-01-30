@@ -6,76 +6,73 @@ nav_order: 1
 
 # Vernachain Documentation
 
-Welcome to the Vernachain documentation. This guide will help you understand and use the Vernachain SDK effectively.
+## Overview
+Vernachain is a high-performance blockchain platform with sharding support, smart contracts, and proof-of-stake consensus.
 
-## Quick Start
+## Key Features
 
-```python
-from vernachain import VernaChain
+### Blockchain Core
+- Sharded architecture for scalability
+- Proof of Stake consensus
+- Cross-shard transaction support
+- Advanced validator system
 
-# Initialize the client
-client = VernaChain(node_url="YOUR_NODE_URL")
+### Smart Contracts
+- Python-based smart contracts
+- Gas metering and optimization
+- Multiple token standards support
+- Contract templates
 
-# Create a new wallet
-wallet = client.create_wallet()
+### Security
+- Transaction signature verification
+- Merkle proof validation
+- Validator reputation system
+- Cross-shard security
 
-# Get balance
-balance = client.get_balance(wallet.address)
-```
+## Documentation Sections
 
-## Features
-
-- Fast and efficient blockchain operations
-- Built-in caching system
-- Batch operation support
-- WebSocket integration
-- Comprehensive security features
-- Smart contract deployment and interaction
-- Command-line interface tools
-- Advanced node operations
-
-## Documentation Structure
+### Getting Started
+- [Installation Guide](installation.md)
+- [Quick Start Guide](getting-started.md)
+- [Basic Concepts](concepts.md)
 
 ### Core Documentation
-1. [Getting Started](./getting-started.md)
-   - Basic setup and installation
-   - First steps with Vernachain
-   - Basic operations
+- [Architecture Overview](architecture.md)
+- [API Reference](api-reference.md)
+- [Smart Contracts](smart-contracts.md)
 
-2. [Node Operation](./node-operation.md)
-   - Node setup and configuration
-   - Network participation
-   - Validator operations
-
-3. [CLI Tool Guide](./cli-tool.md)
-   - Command-line interface usage
-   - Available commands
-   - Configuration options
+### Advanced Topics
+- [Validator Guide](validator-guide.md)
+- [Sharding System](sharding.md)
+- [Cross-Shard Operations](cross-shard.md)
+- [Security Model](security.md)
 
 ### Development
-4. [Smart Contracts](./smart-contracts.md)
-   - Writing smart contracts
-   - Deployment process
-   - Contract interaction
-   - Best practices
+- [Contributing Guide](contributing.md)
+- [Development Setup](development.md)
+- [Testing Guide](testing.md)
 
-5. [API Reference](./api-reference.md)
-   - Complete API documentation
-   - Endpoints and methods
-   - Request/response formats
-   - Authentication
+## Project Structure
+```
+vernachain/
+├── src/
+│   ├── blockchain/           # Core blockchain implementation
+│   │   ├── smart_contracts/  # Smart contract system
+│   │   ├── sharding.py      # Sharding implementation
+│   │   ├── consensus.py     # Consensus mechanism
+│   │   └── transaction.py   # Transaction processing
+│   ├── api/                 # API implementation
+│   ├── cli/                 # Command-line interface
+│   └── utils/               # Utility functions
+├── docs/                    # Documentation
+├── tests/                   # Test suite
+└── scripts/                 # Development scripts
+```
 
-6. [Architecture](./architecture.md)
-   - System design
-   - Component interaction
-   - Technical specifications
-   - Security model
+## Quick Links
+- [GitHub Repository](https://github.com/BronzonTech-Cloud/vernachain)
+- [Issue Tracker](https://github.com/BronzonTech-Cloud/vernachain/issues)
+- [Release Notes](CHANGELOG.md)
 
-## Support and Community
-
-- For technical support, please open an issue on our [GitHub repository](https://github.com/BronzonTech-Cloud/vernachain)
-
-
-## Contributing
-
-We welcome contributions! Please see our [Contributing Guide](https://github.com/BronzonTech-Cloud/vernachain/blob/main/CONTRIBUTING.md) for details on how to get started. 
+## Support
+- [Troubleshooting](troubleshooting.md)
