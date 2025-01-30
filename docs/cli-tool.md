@@ -29,7 +29,7 @@ Common options available for all commands:
 ```
 
 ## Node Commands
-
+  
 ### Start Bootstrap Node
 ```bash
 python -m src.cli start-bootstrap [OPTIONS]
@@ -37,7 +37,7 @@ python -m src.cli start-bootstrap [OPTIONS]
   --port INTEGER       Port number (default: 5000)
   --max-peers INTEGER  Maximum number of peers (default: 50)
 ```
-
+  
 ### Start Regular Node
 ```bash
 python -m src.cli start [OPTIONS]

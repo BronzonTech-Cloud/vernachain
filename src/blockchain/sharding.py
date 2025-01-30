@@ -4,6 +4,9 @@ import hashlib
 import json
 from .block import Block
 from .transaction import Transaction
+from src.utils.serialization import serialize_transaction
+from src.utils.validation import is_valid_transaction
+import time
 
 
 @dataclass
@@ -83,6 +86,62 @@ class ShardChain:
             hashes = next_level
             
         return hashes[0]
+
+    def process_cross_shard_transaction(self, message: CrossShardMessage, transaction: Dict) -> bool:
+        """
+        Process a cross-shard transaction.
+        
+        Args:
+            message: Cross-shard message containing transaction details
+            transaction: The transaction to process
+            
+        Returns:
+            bool: True if transaction processed successfully
+        """
+        # Validate the transaction
+        if not is_valid_transaction(transaction):
+            message.status = "failed"
+            return False
+            
+        # Verify the transaction belongs to this shard
+        if message.to_shard != self.shard_id:
+            message.status = "failed"
+            return False
+            
+        # Verify merkle proof
+        if not self._verify_merkle_proof(transaction, message.merkle_proof):
+            message.status = "failed"
+            return False
+            
+        # Create a new block for the cross-shard transaction
+        new_block = Block(
+            index=len(self.chain),
+            transactions=[serialize_transaction(transaction)],
+            timestamp=time.time(),
+            previous_hash=self.chain[-1].hash if self.chain else "0" * 64,
+            validator="system"  # Cross-shard transactions are processed by the system
+        )
+        
+        # Add block to chain
+        if not self.add_block(new_block):
+            message.status = "failed"
+            return False
+            
+        message.status = "completed"
+        return True
+        
+    def _verify_merkle_proof(self, transaction: Dict, proof: List[str]) -> bool:
+        """Verify a merkle proof for a transaction."""
+        tx_hash = hashlib.sha256(
+            json.dumps(transaction, sort_keys=True).encode()
+        ).hexdigest()
+        
+        current_hash = tx_hash
+        for proof_element in proof:
+            combined = current_hash + proof_element
+            current_hash = hashlib.sha256(combined.encode()).hexdigest()
+            
+        return current_hash == self.get_state_root()
 
 
 class MasterChain:

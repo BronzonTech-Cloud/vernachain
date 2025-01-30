@@ -4,14 +4,20 @@ API Service for Vernachain.
 This module provides RESTful API endpoints for blockchain interaction.
 """
 
-from fastapi import FastAPI, Depends, HTTPException, Security, status, Request
+from fastapi import FastAPI, Depends, HTTPException, Security, status, Request, Response
 from fastapi.security import APIKeyHeader
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from typing import Dict, List, Optional
-from datetime import datetime
+from typing import Dict, List, Optional, Any
+from datetime import datetime, timedelta
 import time
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
+import os
+import secrets
+from src.auth import AuthService, User 
+from decimal import Decimal
+from src.tokens import TokenService, TokenFactory
+from src.blockchain.client import BlockchainClient
 
 # Models for request/response
 class TransactionRequest(BaseModel):
@@ -59,7 +65,47 @@ class BridgeTransferRequest(BaseModel):
     to_address: str = Field(..., description="Recipient address")
     private_key: str = Field(..., description="Sender's private key")
 
-# Initialize FastAPI
+class UserRegisterRequest(BaseModel):
+    email: EmailStr
+    password: str
+    confirm_password: str
+
+class UserLoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+    two_factor_code: Optional[str] = None
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+class PasswordResetConfirmRequest(BaseModel):
+    token: str
+    new_password: str
+    confirm_password: str
+
+class Enable2FARequest(BaseModel):
+    password: str
+
+class Verify2FARequest(BaseModel):
+    code: str
+
+# Add new token models
+class TokenTransferRequest(BaseModel):
+    token_id: str = Field(..., description="Token ID")
+    to_address: str = Field(..., description="Recipient address")
+    amount: str = Field(..., description="Amount to transfer")
+
+class TokenBurnRequest(BaseModel):
+    token_id: str = Field(..., description="Token ID")
+    amount: str = Field(..., description="Amount to burn")
+
+class TokenPermissionRequest(BaseModel):
+    token_id: str = Field(..., description="Token ID")
+    address: str = Field(..., description="Address to grant/revoke permissions")
+    permission_type: str = Field(..., description="Permission type (mint, burn, transfer, admin)")
+    grant: bool = Field(..., description="True to grant, False to revoke")
+
+# Initialize FastAPI and Auth Service
 app = FastAPI(
     title="Vernachain API",
     description="Official API for Vernachain blockchain",
@@ -68,13 +114,23 @@ app = FastAPI(
     redoc_url="/api/redoc"
 )
 
-# CORS configuration
+# Initialize auth service with secret key
+SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_urlsafe(32))
+auth_service = AuthService(secret_key=SECRET_KEY)
+
+# Initialize services
+blockchain_client = BlockchainClient()
+token_factory = TokenFactory(blockchain_client)
+token_service = TokenService(token_factory)
+
+# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:3000"],  # Frontend URL
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Set-Cookie", "Authorization"],
+    expose_headers=["Set-Cookie"]
 )
 
 # Security
@@ -128,6 +184,196 @@ async def http_exception_handler(request: Request, exc: HTTPException):
             "status_code": exc.status_code,
             "path": request.url.path
         }
+    )
+
+# Custom exceptions
+class AuthError(Exception):
+    def __init__(self, message: str, status_code: int = 401):
+        self.message = message
+        self.status_code = status_code
+        super().__init__(self.message)
+
+class ValidationError(Exception):
+    def __init__(self, message: str, fields: Optional[Dict[str, str]] = None):
+        self.message = message
+        self.fields = fields or {}
+        super().__init__(self.message)
+
+# Exception handlers
+@app.exception_handler(AuthError)
+async def auth_exception_handler(request: Request, exc: AuthError):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": "Authentication error",
+            "message": exc.message
+        }
+    )
+
+@app.exception_handler(ValidationError)
+async def validation_exception_handler(request: Request, exc: ValidationError):
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={
+            "error": "Validation error",
+            "message": exc.message,
+            "fields": exc.fields
+        }
+    )
+
+# Authentication Routes
+@app.post("/api/v1/auth/register")
+async def register(request: UserRegisterRequest):
+    """Register a new user."""
+    if request.password != request.confirm_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Passwords do not match"
+        )
+    
+    try:
+        user = auth_service.register_user(request.email, request.password)
+        return {
+            "message": "Registration successful",
+            "user_id": user.id,
+            "email": user.email
+        }
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@app.post("/api/v1/auth/login")
+async def login(request: UserLoginRequest, response: Response):
+    try:
+        session = auth_service.login(request.email, request.password)
+        if not session:
+            raise AuthError("Invalid credentials")
+        
+        response.set_cookie(
+            key="session",
+            value=session,
+            httponly=True,
+            secure=True,
+            samesite="strict",
+            expires=datetime.now() + timedelta(days=7)
+        )
+        return {"status": "success", "email": request.email}
+    except AuthError as e:
+        raise
+    except Exception as e:
+        raise AuthError(f"Login failed: {str(e)}")
+
+async def get_current_session(request: Request) -> str:
+    """Get current session from cookie."""
+    session = request.cookies.get("session")
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated"
+        )
+    return session
+
+@app.post("/api/v1/auth/logout")
+async def logout(response: Response, session: str = Depends(get_current_session)):
+    try:
+        auth_service.logout(session)
+        response.delete_cookie(key="session")
+        return {"status": "success"}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+async def get_current_user(
+    session: str = Depends(get_current_session)
+) -> User:
+    """Get current user from session."""
+    user = auth_service.verify_session(session)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired session"
+        )
+    return user 
+
+@app.post("/api/v1/auth/enable-2fa")
+async def enable_2fa(
+    request: Enable2FARequest,
+    user: User = Depends(get_current_user)
+):
+    """Enable 2FA for user."""
+    # Verify password before enabling 2FA
+    if not auth_service.verify_password(user.email, request.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid password"
+        )
+    
+    secret = user.enable_2fa()
+    return {
+        "secret": secret,
+        "qr_code": f"otpauth://totp/Vernachain:{user.email}?secret={secret}&issuer=Vernachain"
+    }
+
+@app.post("/api/v1/auth/verify-2fa")
+async def verify_2fa(
+    request: Verify2FARequest,
+    user: User = Depends(get_current_user)
+):
+    """Verify 2FA setup."""
+    if not user.verify_2fa(request.code):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid 2FA code"
+        )
+    return {"message": "2FA verified successfully"}
+
+@app.post("/api/v1/auth/disable-2fa")
+async def disable_2fa(
+    request: Enable2FARequest,
+    user: User = Depends(get_current_user)
+):
+    """Disable 2FA for user."""
+    # Verify password before disabling 2FA
+    if not auth_service.verify_password(user.email, request.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid password"
+        )
+    
+    user.disable_2fa()
+    return {"message": "2FA disabled successfully"}
+
+@app.post("/api/v1/auth/reset-password")
+async def request_password_reset(request: PasswordResetRequest):
+    """Request password reset token."""
+    token = auth_service.generate_password_reset_token(request.email)
+    if token:
+        # In production, send this token via email
+        return {
+            "message": "Password reset instructions sent",
+            "token": token  # Remove in production
+        }
+    return {"message": "Password reset instructions sent"}
+
+@app.post("/api/v1/auth/reset-password/confirm")
+async def confirm_password_reset(request: PasswordResetConfirmRequest):
+    """Reset password using token."""
+    if request.new_password != request.confirm_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Passwords do not match"
+        )
+    
+    if auth_service.reset_password(request.token, request.new_password):
+        return {"message": "Password reset successful"}
+    
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Invalid or expired reset token"
     )
 
 # Blockchain Routes
@@ -394,4 +640,232 @@ async def get_validators(api_key: str = Depends(check_api_key)):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get validators: {str(e)}"
-        ) 
+        )
+
+# Token Models
+class CreateTokenRequest(BaseModel):
+    name: str = Field(..., description="Token name")
+    symbol: str = Field(..., description="Token symbol")
+    description: str = Field(..., description="Token description")
+    initial_supply: str = Field(..., description="Initial token supply")
+    decimals: int = Field(default=18, description="Token decimals")
+    is_mintable: bool = Field(default=True, description="Whether token can be minted")
+    is_burnable: bool = Field(default=False, description="Whether token can be burned")
+    is_pausable: bool = Field(default=True, description="Whether token can be paused")
+    metadata: Optional[Dict] = Field(default=None, description="Additional token metadata")
+
+class MintTokenRequest(BaseModel):
+    token_id: str = Field(..., description="Token ID")
+    amount: str = Field(..., description="Amount to mint")
+    to_address: str = Field(..., description="Recipient address")
+
+# Token Routes
+@app.post("/api/v1/tokens/create")
+async def create_token(
+    request: CreateTokenRequest,
+    user: User = Depends(get_current_user)
+):
+    """Create a new token."""
+    try:
+        initial_supply = Decimal(request.initial_supply)
+        token = await token_service.create_token(
+            user=user,
+            name=request.name,
+            symbol=request.symbol,
+            description=request.description,
+            initial_supply=initial_supply,
+            decimals=request.decimals,
+            is_mintable=request.is_mintable,
+            is_burnable=request.is_burnable,
+            is_pausable=request.is_pausable,
+            metadata=request.metadata
+        )
+        
+        if not token:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to create token"
+            )
+            
+        return {
+            "message": "Token created successfully",
+            "token_id": token.id,
+            "contract_address": token.contract_address
+        }
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@app.post("/api/v1/tokens/mint")
+async def mint_tokens(
+    request: MintTokenRequest,
+    user: User = Depends(get_current_user)
+):
+    """Mint new tokens."""
+    try:
+        amount = Decimal(request.amount)
+        if await token_service.mint_tokens(
+            user=user,
+            token_id=request.token_id,
+            amount=amount,
+            to_address=request.to_address
+        ):
+            return {"message": "Tokens minted successfully"}
+            
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Failed to mint tokens"
+        )
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@app.get("/api/v1/tokens")
+async def list_tokens(user: User = Depends(get_current_user)):
+    """List user's tokens."""
+    tokens = token_service.get_user_tokens(user)
+    return {
+        "tokens": [token_service.get_token_info(token.id) for token in tokens]
+    }
+
+@app.get("/api/v1/tokens/{token_id}")
+async def get_token(
+    token_id: str,
+    user: User = Depends(get_current_user)
+):
+    """Get token details."""
+    token_info = token_service.get_token_info(token_id)
+    if not token_info:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Token not found"
+        )
+    return token_info
+
+# Add new token endpoints
+@app.post("/api/v1/tokens/transfer")
+async def transfer_tokens(
+    request: TokenTransferRequest,
+    user: User = Depends(get_current_user)
+):
+    """Transfer tokens to another address."""
+    try:
+        amount = Decimal(request.amount)
+        if await token_service.transfer_tokens(
+            user=user,
+            token_id=request.token_id,
+            amount=amount,
+            to_address=request.to_address
+        ):
+            return {"message": "Tokens transferred successfully"}
+            
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Failed to transfer tokens"
+        )
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@app.post("/api/v1/tokens/burn")
+async def burn_tokens(
+    request: TokenBurnRequest,
+    user: User = Depends(get_current_user)
+):
+    """Burn tokens."""
+    try:
+        amount = Decimal(request.amount)
+        if await token_service.burn_tokens(
+            user=user,
+            token_id=request.token_id,
+            amount=amount
+        ):
+            return {"message": "Tokens burned successfully"}
+            
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Failed to burn tokens"
+        )
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@app.post("/api/v1/tokens/{token_id}/permissions")
+async def manage_token_permissions(
+    token_id: str,
+    request: TokenPermissionRequest,
+    user: User = Depends(get_current_user)
+):
+    """Manage token permissions."""
+    try:
+        if await token_service.manage_permissions(
+            user=user,
+            token_id=token_id,
+            target_address=request.address,
+            permission_type=request.permission_type,
+            grant=request.grant
+        ):
+            action = "granted" if request.grant else "revoked"
+            return {
+                "message": f"Permission {action} successfully"
+            }
+            
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Failed to manage permissions"
+        )
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@app.get("/api/v1/tokens/{token_id}/analytics")
+async def get_token_analytics(
+    token_id: str,
+    user: User = Depends(get_current_user)
+):
+    """Get token analytics."""
+    analytics = await token_service.get_token_analytics(token_id)
+    if not analytics:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Token not found"
+        )
+    return analytics
+
+# Dependencies
+async def get_current_session(request: Request) -> str:
+    """Get current session from cookie."""
+    session = request.cookies.get("session")
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated"
+        )
+    return session
+
+async def get_current_user(
+    session: str = Depends(get_current_session)
+) -> User:
+    """Get current user from session."""
+    user = auth_service.verify_session(session)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired session"
+        )
+    return user 

@@ -3,7 +3,9 @@ import socket
 import threading
 from typing import Set, Dict, Any, Optional
 from dataclasses import dataclass, field
+from src.utils.logging import get_networking_logger
 
+logger = get_networking_logger()
 
 @dataclass
 class BootstrapNode:
@@ -17,6 +19,7 @@ class BootstrapNode:
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # Enable address reuse to prevent "Address already in use" errors
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        logger.info("Bootstrap node initialized")
 
     def start(self) -> None:
         """Start the bootstrap node server."""
@@ -25,13 +28,13 @@ class BootstrapNode:
             self.socket.listen(5)
             self.running = True
             
-            print(f"Bootstrap node started on {self.host}:{self.port}")
+            logger.info(f"Bootstrap node started on {self.host}:{self.port}")
             
             # Start listening for connections
             while self.running:
                 try:
                     client_sock, address = self.socket.accept()
-                    print(f"New connection from {address[0]}:{address[1]}")
+                    logger.info(f"New connection from {address[0]}:{address[1]}")
                     
                     # Handle client in a new thread
                     handler_thread = threading.Thread(
@@ -42,20 +45,22 @@ class BootstrapNode:
                     handler_thread.start()
                 except Exception as e:
                     if self.running:
-                        print(f"Error accepting connection: {e}")
+                        logger.error(f"Error accepting connection: {e}")
                         
         except Exception as e:
-            print(f"Failed to start bootstrap node: {e}")
+            logger.error(f"Failed to start bootstrap node: {e}")
             self.running = False
         finally:
             if self.socket:
                 self.socket.close()
+                logger.info("Bootstrap node stopped")
 
     def stop(self) -> None:
         """Stop the bootstrap node server."""
         self.running = False
         if self.socket:
             self.socket.close()
+        logger.info("Bootstrap node stopped")
 
     def _handle_client(self, client_sock: socket.socket, address: tuple) -> None:
         """
@@ -74,6 +79,7 @@ class BootstrapNode:
                             peer_host = message["host"]
                             peer_port = message["port"]
                             self.peers.add((peer_host, peer_port))
+                            logger.info(f"New peer registered: {peer_host}:{peer_port}")
                             
                             # Send list of known peers
                             response = {
@@ -81,6 +87,7 @@ class BootstrapNode:
                                 "peers": list(self.peers)
                             }
                             self._send_message(client_sock, response)
+                            logger.debug(f"Sent peer list to {peer_host}:{peer_port}")
                             
                             # Broadcast new peer to existing peers
                             self._broadcast_new_peer(peer_host, peer_port)
@@ -92,13 +99,15 @@ class BootstrapNode:
                                 "peers": list(self.peers)
                             }
                             self._send_message(client_sock, response)
+                            logger.debug(f"Sent peer list to {address[0]}:{address[1]}")
                 else:
                     break
                     
         except Exception as e:
-            print(f"Error handling client {address[0]}:{address[1]}: {e}")
+            logger.error(f"Error handling client {address[0]}:{address[1]}: {e}")
         finally:
             client_sock.close()
+            logger.debug(f"Closed connection to {address[0]}:{address[1]}")
 
     def _broadcast_new_peer(self, peer_host: str, peer_port: int) -> None:
         """
@@ -114,6 +123,8 @@ class BootstrapNode:
             "port": peer_port
         }
         
+        logger.info(f"Broadcasting new peer {peer_host}:{peer_port} to network")
+        
         # Send to all peers except the new one
         for peer in self.peers.copy():
             if peer != (peer_host, peer_port):
@@ -121,8 +132,9 @@ class BootstrapNode:
                     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
                         sock.connect(peer)
                         self._send_message(sock, message)
+                        logger.debug(f"Broadcast sent to {peer[0]}:{peer[1]}")
                 except Exception as e:
-                    print(f"Failed to broadcast to {peer[0]}:{peer[1]}: {e}")
+                    logger.error(f"Failed to broadcast to {peer[0]}:{peer[1]}: {e}")
                     self.peers.discard(peer)
 
     @staticmethod
@@ -139,7 +151,7 @@ class BootstrapNode:
             message_length = len(message_bytes).to_bytes(4, byteorder='big')
             sock.sendall(message_length + message_bytes)
         except Exception as e:
-            print(f"Error sending message: {e}")
+            logger.error(f"Error sending message: {e}")
             raise
 
     @staticmethod
@@ -168,5 +180,5 @@ class BootstrapNode:
             
             return json.loads(message_bytes.decode())
         except Exception as e:
-            print(f"Error receiving message: {e}")
+            logger.error(f"Error receiving message: {e}")
             raise 

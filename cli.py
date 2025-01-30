@@ -4,9 +4,11 @@ import argparse
 import json
 import sys
 import time
+import logging
 from src.networking.node import Node
 from src.networking.bootstrap_node import BootstrapNode
 from src.blockchain.transaction import Transaction
+from src.utils.logging import setup_logger
 
 
 class VernaChainCLI:
@@ -17,31 +19,44 @@ class VernaChainCLI:
 
     def start_bootstrap(self, args):
         """Start a bootstrap node."""
+        # Setup logging
+        logger = setup_logger(
+            'bootstrap',
+            f'logs/bootstrap_{time.strftime("%Y%m%d")}.log',
+            level=logging.DEBUG if args.debug else logging.INFO
+        )
+        
         self.bootstrap_node = BootstrapNode(args.host, args.port)
         try:
-            print(f"Starting bootstrap node on {args.host}:{args.port}")
+            logger.info(f"Starting bootstrap node on {args.host}:{args.port}")
             self.bootstrap_node.start()
         except KeyboardInterrupt:
             self.bootstrap_node.stop()
-            print("\nBootstrap node stopped.")
+            logger.info("Bootstrap node stopped.")
 
     def start(self, args):
         """Start a blockchain node."""
+        # Setup logging
+        logger = setup_logger(
+            'node',
+            f'logs/node_{time.strftime("%Y%m%d")}.log',
+            level=logging.DEBUG if args.debug else logging.INFO
+        )
+        
         self.node = Node(
             host=args.host,
             port=args.port,
             bootstrap_host=args.bootstrap_host,
-            bootstrap_port=args.bootstrap_port,
-            num_shards=args.num_shards
+            bootstrap_port=args.bootstrap_port
         )
         try:
             self.node.start()
-            print("Node started successfully. Press Ctrl+C to stop.")
+            logger.info("Node started successfully. Press Ctrl+C to stop.")
             while True:
                 time.sleep(1)
         except KeyboardInterrupt:
             self.node.stop()
-            print("\nNode stopped.")
+            logger.info("Node stopped.")
 
     def deploy_contract(self, args):
         """Deploy a smart contract."""
@@ -287,6 +302,7 @@ def main():
     bootstrap_parser = subparsers.add_parser("bootstrap", help="Start a bootstrap node")
     bootstrap_parser.add_argument("--host", default="localhost", help="Host address to bind to")
     bootstrap_parser.add_argument("--port", type=int, default=5000, help="Port to listen on")
+    bootstrap_parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     
     # Start command
     start_parser = subparsers.add_parser("start", help="Start a blockchain node")
@@ -294,7 +310,7 @@ def main():
     start_parser.add_argument("--port", type=int, default=5001, help="Port to listen on")
     start_parser.add_argument("--bootstrap-host", help="Bootstrap node host address")
     start_parser.add_argument("--bootstrap-port", type=int, help="Bootstrap node port")
-    start_parser.add_argument("--num-shards", type=int, default=4, help="Number of shards to create")
+    start_parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     
     # Deploy contract command
     deploy_parser = subparsers.add_parser("deploy", help="Deploy a smart contract")
@@ -368,9 +384,14 @@ def main():
         parser.print_help()
         sys.exit(1)
     
-    # Call the appropriate method based on the command
-    command_method = getattr(cli, args.command if args.command != "bootstrap" else "start_bootstrap")
-    command_method(args)
+    if args.command == "bootstrap":
+        cli.start_bootstrap(args)
+    elif args.command == "start":
+        cli.start(args)
+    else:
+        # Call the appropriate method based on the command
+        command_method = getattr(cli, args.command)
+        command_method(args)
 
 
 if __name__ == "__main__":

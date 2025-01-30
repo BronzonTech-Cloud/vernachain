@@ -1,131 +1,186 @@
 # Getting Started with Vernachain
 
-This guide will help you set up and run your first Vernachain node, create a wallet, and perform basic operations.
+## Prerequisites
 
-## Table of Contents
-- [Installation](#installation)
-- [Initial Setup](#initial-setup)
-- [Running the Network](#running-the-network)
-- [Creating a Wallet](#creating-a-wallet)
-- [Basic Operations](#basic-operations)
-- [Next Steps](#next-steps)
+- Python 3.8 or higher
+- pip package manager
+- Git
 
 ## Installation
 
-1. System Requirements:
-   - Python 3.12.4 or higher
-   - Node.js and npm (for frontend)
-   - 2GB RAM minimum
-   - 10GB storage recommended
-   - Stable internet connection
-
-2. Clone the Repository:
-   ```bash
-   git clone https://github.com/BronzonTech-Cloud/vernachain.git
-   cd vernachain
+1. Clone the repository:
+```bash
+git clone https://github.com/BronzonTech-Cloud/vernachain.git
+cd vernachain
 ```
 
-3. Install Dependencies:
-   ```bash
-   # Install Python dependencies
-   pip install -r requirements.txt
-
-   # Install frontend dependencies
-   cd src/frontend && npm install && cd ../..
+2. Install dependencies:
+```bash
+pip install -r requirements.txt
 ```
 
-## Initial Setup
+## Quick Start
 
-1. Environment Configuration:
-   - Ensure required ports are available (default: 5000, 5001, 8000, 8001, 3000)
-   - Configure firewall rules if needed
-   - Set up environment variables (optional)
-
-2. Directory Structure:
-   ```
-   vernachain/
-   ├── src/              # Source code
-   ├── docs/             # Documentation
-   ├── tests/            # Test files
-   ├── requirements.txt  # Python dependencies
-   └── start.sh/bat      # Startup scripts
+### 1. Start a Node
+```bash
+python -m src.cli start-node
 ```
 
-## Running the Network
-
-1. Development Mode (includes hot reloading):
-   ```bash
-   ./start.sh --dev      # Unix systems
-   start.bat --dev       # Windows
+### 2. Create a Wallet
+```bash
+python -m src.cli create-wallet
 ```
 
-2. Production Mode with Bootstrap Node:
-   ```bash
-   ./start.sh --bootstrap
-```
-
-3. Custom Configuration:
-   ```bash
-   ./start.sh --bootstrap \
-       --node-port 5001 \
-       --api-port 8000 \
-       --explorer-port 8001
-   ```
-
-## Creating a Wallet
-
-1. Create a New Wallet:
-   ```bash
-   python -m src.wallet.cli create -l "My Wallet"
-```
-
-2. Check Wallet Balance:
-   ```bash
-   python -m src.wallet.cli balance
-   ```
-
-3. List Available Wallets:
-   ```bash
-   python -m src.wallet.cli list
+### 3. Become a Validator
+```bash
+python -m src.cli stake --amount 1000
 ```
 
 ## Basic Operations
 
-1. Access Components:
-   - Frontend Interface: http://localhost:3000
-   - API Documentation: http://localhost:8000/docs
-   - Explorer API: http://localhost:8001/docs
+### Send Transaction
+```python
+from src.blockchain.transaction import Transaction
+from src.utils.crypto import generate_keypair
 
-2. Send Transactions:
-   ```bash
-   python -m src.wallet.cli send --to ADDRESS --amount VALUE
+# Create and sign transaction
+private_key, public_key = generate_keypair()
+tx = Transaction(
+    from_address=public_key,
+    to_address="recipient_address",
+    value=100,
+    nonce=1
+)
+tx.sign(private_key)
+
+# Submit transaction
+response = node.submit_transaction(tx)
+print(f"Transaction hash: {response['hash']}")
 ```
 
-3. Stake Tokens (to become a validator):
-   ```bash
-   python -m src.wallet.cli stake --amount VALUE
-   ```
+### Deploy Smart Contract
+```python
+# Deploy token contract
+contract_code = """
+class Contract:
+    def __init__(self, name: str, symbol: str, total_supply: float):
+        self.name = name
+        self.symbol = symbol
+        self.total_supply = total_supply
+        self.balances = {globals()['sender']: total_supply}
+"""
 
-4. Deploy Smart Contract:
-   ```bash
-   python -m src.cli deploy-contract --file path/to/contract.py
+contract_address = node.deploy_contract(
+    code=contract_code,
+    constructor_args=["MyToken", "MTK", 1000000]
+)
+print(f"Contract deployed at: {contract_address}")
 ```
+
+### Cross-Shard Transaction
+```python
+# Create cross-shard transaction
+tx = Transaction(
+    from_address=public_key,
+    to_address="recipient_address",
+    value=100,
+    nonce=1
+)
+tx.sign(private_key)
+
+# Submit to source shard
+source_shard = node.get_shard_for_address(public_key)
+response = source_shard.submit_transaction(tx)
+print(f"Cross-shard transaction initiated: {response['hash']}")
+```
+
+## Advanced Features
+
+### Validator Operations
+```python
+# Check validator status
+validator_info = node.get_validator_info(public_key)
+print(f"Stake: {validator_info['stake']}")
+print(f"Reputation: {validator_info['reputation_score']}")
+
+# Claim rewards
+rewards = node.claim_validator_rewards(public_key)
+print(f"Claimed rewards: {rewards}")
+```
+
+### Smart Contract Interaction
+```python
+# Call contract method
+result = node.call_contract(
+    address=contract_address,
+    method="transfer",
+    args=["recipient_address", 100]
+)
+print(f"Transfer result: {result}")
+```
+
+### Monitor Events
+```python
+# Subscribe to new blocks
+async def handle_block(block):
+    print(f"New block: {block['index']}")
+    print(f"Transactions: {len(block['transactions'])}")
+
+node.subscribe_blocks(handle_block)
+
+# Subscribe to transactions
+async def handle_transaction(tx):
+    print(f"New transaction: {tx['hash']}")
+    print(f"Amount: {tx['amount']}")
+
+node.subscribe_transactions(handle_transaction)
+```
+
+## Best Practices
+
+### Security
+- Always verify transaction signatures
+- Use appropriate gas limits
+- Keep private keys secure
+- Monitor validator performance
+
+### Performance
+- Batch transactions when possible
+- Use appropriate shard selection
+- Implement proper error handling
+- Cache frequently accessed data
+
+### Development
+- Test contracts thoroughly
+- Monitor gas usage
+- Handle cross-shard scenarios
+- Implement proper logging
 
 ## Next Steps
+- Explore the [API Reference](api-reference.md)
+- Read the [Architecture Overview](architecture.md)
+- Learn about [Smart Contracts](smart-contracts.md)
+- Join the community
 
-1. Explore Advanced Features:
-   - [Node Operation Guide](node-operation.md)
-   - [Smart Contracts Guide](smart-contracts.md)
-   - [API Reference](api-reference.md)
+## Troubleshooting
 
-2. Development Resources:
-   - Join our community
-   - Check example projects
-   - Read the architecture documentation
+Common issues and solutions:
 
-3. Best Practices:
-   - Regular backups
-   - Security considerations
-   - Performance optimization
+1. **Database Connection Error**
+   - Check PostgreSQL is running
+   - Verify database credentials
+   - Ensure database exists
 
-For more detailed information, refer to the specific documentation sections or join our community channels. 
+2. **Node Sync Issues**
+   - Check network connectivity
+   - Verify bootstrap nodes are accessible
+   - Clear node data and resync
+
+3. **Frontend Build Errors**
+   - Clear npm cache
+   - Update node modules
+   - Check for conflicting dependencies
+
+## Support
+
+- GitHub Issues: [Report a bug](https://github.com/BronzonTech-Cloud/vernachain/issues)

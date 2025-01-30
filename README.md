@@ -1,3 +1,5 @@
+# Vernachain
+
 <div align="center">
 
 ```ascii
@@ -12,27 +14,28 @@
                            ⬡ POWERED BY BRONZONTECH CLOUD ⬡
 ```
 
-# 🔗 Vernachain
-
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python](https://img.shields.io/badge/Python-3.12.4+-blue.svg)](https://www.python.org/downloads/)
 [![Documentation](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://vernachain.readthedocs.io/)
 [![Tests](https://img.shields.io/badge/tests-pytest-green.svg)](https://docs.pytest.org/en/stable/)
+[![Frontend](https://img.shields.io/badge/frontend-React%2018-blue.svg)](src/frontend/)
+[![API](https://img.shields.io/badge/API-FastAPI-teal.svg)](src/api/)
 
 A modern blockchain platform with Proof-of-Stake consensus, smart contracts, and advanced networking features.
 
 [Getting Started](#installation) •
 [Documentation](docs/) •
 [Examples](examples/) •
-[Contributing](CONTRIBUTING.md)
+[Contributing](CONTRIBUTING.md) •
+[Changelog](CHANGELOG.md)
 
 </div>
 
 ---
 
-## ✨ Features
+## 🌟 Key Features
 
-### 🛡️ Core Features
+### 🔗 Blockchain Core
 - **Proof-of-Stake Consensus**
   - ⚡ Energy-efficient validation
   - 🔒 Secure staking mechanism
@@ -45,55 +48,41 @@ A modern blockchain platform with Proof-of-Stake consensus, smart contracts, and
   - 📡 Event emission
   - 🔄 Cross-contract calls
 
+### 🌐 Network & Services
+- **Multi-Service Architecture**
+  - 🔄 Blockchain Node (port 5001)
+  - 🌐 API Service (port 8000)
+  - 📊 Explorer Backend (port 8001)
+  - 💻 Frontend Dev Server (port 5173)
+
 - **Advanced Networking**
   - 🌐 Kademlia DHT for peer discovery
   - 🔐 Secure P2P communication
   - ⚡ Asynchronous message handling
   - 🚀 NAT traversal
 
-- **Sharding Support**
-  - 📈 Horizontal scalability
-  - 🔄 Cross-shard communication
-  - 🎯 Dynamic shard allocation
-  - 🔄 State synchronization
+### 💼 Development Tools
+- **Frontend SDK**
+  - 🎨 Modern React/TypeScript interface
+  - 🔄 Real-time data updates
+  - 📊 Analytics dashboard
+  - 🔐 Secure authentication
 
-### 🛠️ SDK Features
-- **Caching System**
-  - 🚀 LRU cache with TTL support
-  - 🔄 Automatic cache invalidation
-  - ⚙️ Different cache settings for various data types
-  - 💾 Memory-efficient storage
+- **Backend Features**
+  - 🚀 FastAPI-based REST API
+  - 📡 WebSocket support
+  - 🔒 JWT authentication
+  - 📊 Advanced analytics
 
-- **Batch Operations**
-  - ⚡ Concurrent execution
-  - 📦 Transaction batching
-  - 🔄 Smart contract deployment batching
-  - 🌉 Bridge transfer batching
+## 🚀 Quick Start
 
-- **WebSocket Support**
-  - 📡 Real-time event notifications
-  - 🔄 Automatic reconnection
-  - 🔍 Event filtering
-  - 📥 Subscription management
-
-- **Rate Limiting**
-  - 🪣 Token bucket algorithm
-  - ⚙️ Configurable limits per endpoint
-  - 🎚️ Automatic rate control
-  - 📊 Burst handling
-
-## 🚀 Installation
-
-<details>
-<summary>Prerequisites</summary>
-
+### Prerequisites
 - Python 3.12.4+
 - Node.js 18+ (for frontend)
 - 2GB RAM minimum
-- 10GB storage recommended
 - Stable internet connection
 
-</details>
+### Installation
 
 1. Clone the repository:
 ```bash
@@ -106,123 +95,124 @@ cd vernachain
 pip install -r requirements.txt
 ```
 
-3. Install frontend dependencies (optional):
+3. Start all services in development mode:
 ```bash
-cd src/frontend
-npm install
-cd ../..
+python start.py --dev
 ```
 
-## 🏃 Quick Start
-
-1. Start the network:
-```bash
-# Development mode with all components
-./start.sh --dev
-
-# Production mode with bootstrap node
-./start.sh --bootstrap
-```
-
-2. Use the Python SDK:
-```python
-from vernachain import VernachainSDK
-
-# Initialize SDK
-sdk = VernachainSDK(
-    api_url="http://localhost:8000",
-    api_key="your-api-key"
-)
-
-# Send a transaction
-tx_hash = await sdk.send_transaction(
-    to_address="0xrecipient",
-    value=1.5,
-    private_key="your-private-key"
-)
-
-# Deploy a contract
-contract_address = await sdk.deploy_contract(
-    bytecode="0x...",
-    abi=contract_abi,
-    private_key="your-private-key"
-)
-```
+This will start:
+- Blockchain Node: http://localhost:5001
+- API Service: http://localhost:8000
+- Explorer Backend: http://localhost:8001
+- Frontend Dev Server: http://localhost:5173
 
 ## ⚙️ Configuration
 
-<details>
-<summary>Network Configuration</summary>
+### Command Line Options
+```bash
+python start.py [OPTIONS]
 
-- `--bootstrap-host`: Bootstrap node host (default: localhost)
-- `--bootstrap-port`: Bootstrap node port (default: 5000)
-- `--node-port`: Regular node port (default: 5001)
+Options:
+  --dev                   Start in development mode
+  --bootstrap             Start a bootstrap node
+  --api-host HOST        API service host (default: localhost)
+  --api-port PORT        API service port (default: 8000)
+  --explorer-host HOST   Explorer host (default: localhost)
+  --explorer-port PORT   Explorer port (default: 8001)
+  --frontend-host HOST   Frontend host (default: localhost)
+  --frontend-port PORT   Frontend port (default: 5173)
+```
 
-</details>
+### Environment Variables
+Create a `.env` file in the frontend directory:
+```env
+VITE_API_URL=http://localhost:8000
+VITE_EXPLORER_URL=http://localhost:8001
+VITE_NODE_URL=http://localhost:5001
+VITE_API_KEY=your_api_key
+```
 
-<details>
-<summary>API Configuration</summary>
-
-- `--api-host`: API service host (default: localhost)
-- `--api-port`: API service port (default: 8000)
-
-</details>
-
-<details>
-<summary>Explorer Configuration</summary>
-
-- `--explorer-host`: Explorer backend host (default: localhost)
-- `--explorer-port`: Explorer backend port (default: 8001)
-
-</details>
-
-## 👨‍💻 Development
-
-### 📁 Project Structure
+## 📁 Project Structure
 ```
 vernachain/
 ├── src/
-│   ├── blockchain/     # Core blockchain implementation
-│   ├── networking/     # P2P networking
-│   ├── sdk/           # SDKs (Python, Rust, PHP)
-│   ├── explorer/      # Block explorer
-│   ├── api/           # API service
-│   └── frontend/      # Web interface
-├── tests/             # Test suite
+│   ├── api/            # API service
+│   │   ├── service.py  # FastAPI application
+│   │   └── models.py   # Data models
+│   ├── blockchain/     # Core blockchain
+│   │   ├── node.py     # Node implementation
+│   │   └── consensus/  # PoS consensus
+│   ├── explorer/       # Block explorer
+│   │   └── backend.py  # Explorer service
+│   └── frontend/       # Web interface
+│       ├── src/        # Frontend source
+│       └── public/     # Static assets
 ├── docs/              # Documentation
-└── requirements.txt   # Python dependencies
+├── tests/             # Test suite
+└── start.py          # Startup script
 ```
 
-### 🧪 Running Tests
+## 🛠️ Development
+
+### Running Tests
 ```bash
+# Backend tests
 pytest tests/
+
+# Frontend tests
+cd src/frontend
+npm test
 ```
 
-### 📚 Building Documentation
+### Building Documentation
 ```bash
 cd docs
 mkdocs build
 ```
 
-## 📖 API Documentation
+### API Documentation
+- REST API: http://localhost:8000/docs
+- WebSocket API: http://localhost:8000/ws/docs
+- Explorer API: http://localhost:8001/docs
 
-The API documentation is available at:
-- 🔗 REST API: http://localhost:8000/docs
-- 🔌 WebSocket API: http://localhost:8000/ws/docs
+## 🔧 Troubleshooting
+
+### Common Issues
+1. **Services Won't Start**
+   - Check port availability
+   - Verify Python/Node.js versions
+   - Check log files in `logs/`
+
+2. **Frontend Issues**
+   - Verify environment variables
+   - Check browser console
+   - Ensure all services are running
+
+3. **API Connection Errors**
+   - Check service URLs
+   - Verify API key configuration
+   - Check CORS settings
 
 ## 🤝 Contributing
 
-We welcome contributions! Here's how you can help:
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-1. 🍴 Fork the repository
-2. 🌿 Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. 💾 Commit your changes (`git commit -m 'Add amazing feature'`)
-4. 📤 Push to the branch (`git push origin feature/amazing-feature`)
-5. 🔍 Open a Pull Request
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 📚 Additional Resources
+
+- [Frontend Documentation](src/frontend/README.md)
+- [API Documentation](src/api/README.md)
+- [Changelog](CHANGELOG.md)
+- [Security Policy](SECURITY.md)
 
 ---
 

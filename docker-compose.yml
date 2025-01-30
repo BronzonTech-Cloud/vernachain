@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  bootstrap:
+    build: .
+    environment:
+      - NODE_TYPE=bootstrap
+      - NETWORK=mainnet
+      - HOST=0.0.0.0
+    ports:
+      - "5000:5000"
+    volumes:
+      - bootstrap_data:/app/data
+    restart: always
+
+  validator1:
+    build: .
+    environment:
+      - NODE_TYPE=validator
+      - NETWORK=mainnet
+      - HOST=0.0.0.0
+      - BOOTSTRAP_HOST=bootstrap
+      - BOOTSTRAP_PORT=5000
+    ports:
+      - "5001:5001"
+      - "8000:8000"
+    volumes:
+      - validator1_data:/app/data
+    depends_on:
+      - bootstrap
+    restart: always
+
+  validator2:
+    build: .
+    environment:
+      - NODE_TYPE=validator
+      - NETWORK=mainnet
+      - HOST=0.0.0.0
+      - BOOTSTRAP_HOST=bootstrap
+      - BOOTSTRAP_PORT=5000
+    ports:
+      - "5002:5001"
+      - "8001:8000"
+    volumes:
+      - validator2_data:/app/data
+    depends_on:
+      - bootstrap
+    restart: always
+
+  explorer:
+    build: .
+    environment:
+      - NODE_TYPE=full
+      - NETWORK=mainnet
+      - HOST=0.0.0.0
+      - BOOTSTRAP_HOST=bootstrap
+      - BOOTSTRAP_PORT=5000
+    ports:
+      - "3000:3000"
+    volumes:
+      - explorer_data:/app/data
+    depends_on:
+      - bootstrap
+    restart: always
+
+volumes:
+  bootstrap_data:
+  validator1_data:
+  validator2_data:
+  explorer_data: 
