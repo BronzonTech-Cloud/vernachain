@@ -6,6 +6,7 @@ from typing import Dict, List, Optional, Union, Set
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 import asyncio
+import logging
 from ..networking.node import Node
 from ..blockchain.blockchain import Blockchain
 
@@ -209,11 +210,12 @@ async def root():
         update_cache('network_stats', stats)
         return stats
     except Exception as e:
+        logging.error("Exception in root endpoint", exc_info=True)
         return {
             "name": "Vernachain Explorer",
             "version": "0.2.0",
             "status": "error",
-            "error": str(e)
+            "error": "An internal error has occurred."
         }
 
 @app.get("/stats")
